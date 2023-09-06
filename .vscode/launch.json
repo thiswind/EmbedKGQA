@@ -12,6 +12,16 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "cwd": "/home/thiswind/workspaces/EmbedKGQA/KGQA/LSTM"
+        },
+
+        {
+            "name": "Python: KGQA/RoBERTa",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd": "/home/thiswind/workspaces/EmbedKGQA/KGQA/RoBERTa"
         }
     ]
 }

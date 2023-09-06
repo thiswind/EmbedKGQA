@@ -14,7 +14,9 @@ from torch.optim.lr_scheduler import ExponentialLR, ReduceLROnPlateau
 import networkx as nx
 import time
 import sys
-sys.path.append("../..") # Adds higher directory to python modules path.
+# sys.path.append("../..") # Adds higher directory to python modules path.
+# 直接写绝对路径
+sys.path.append("/home/thiswind/workspaces/EmbedKGQA")
 from kge.model import KgeModel
 from kge.util.io import load_checkpoint
 
@@ -59,6 +61,28 @@ parser.add_argument('--do_batch_norm', type=str2bool, default=True)
 
 os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3,4,5,6,7"
 args = parser.parse_args()
+
+# 设置运行参数
+args.mode = 'train'
+args.relation_dim = 200
+args.do_batch_norm = 1
+args.gpu = 0
+args.freeze = 1
+args.batch_size = 16
+args.validate_every = 10
+args.hops = 'webqsp_half'
+args.lr = 0.00002
+args.entdrop = 0.0
+args.reldrop = 0.0
+args.scoredrop = 0.0
+args.decay = 1.0
+args.model = 'ComplEx'
+args.patience = 20
+args.ls = 0.05
+args.l3_reg = 0.001
+args.nb_epochs = 200
+args.outfile = 'half_fbwq'
+# end 设置运行参数
 
 
 def prepare_embeddings(embedding_dict):
