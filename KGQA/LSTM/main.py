@@ -51,6 +51,25 @@ parser.add_argument('--freeze', type=str2bool, default=True)
 os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3,4,5,6,7"
 args = parser.parse_args()
 
+## debug with specific parameters
+args.mode = 'train'
+args.relation_dim = 200
+args.hidden_dim = 256
+args.gpu = 0 
+args.freeze = 0 
+args.batch_size = 128 
+args.validate_every = 5 
+args.hops = '2'
+args.lr = 0.0005 
+args.entdrop = 0.1 
+args.reldrop = 0.2  
+args.scoredrop = 0.2
+args.decay = 1.0 
+args.model = 'ComplEx'
+args.patience = 5 
+args.ls = 0.0 
+args.kg_type = 'half'
+## end debug
 
 def prepare_embeddings(embedding_dict):
     entity2idx = {}
@@ -223,9 +242,19 @@ def train(data_path, entity_path, relation_path, entity_dict, relation_dict, neg
                     if freeze == True:
                         suffix = '_frozen'
                     checkpoint_path = '../../checkpoints/MetaQA/'
+
+                    # 检查目录是否存在，如果不存在则创建
+                    if not os.path.exists(checkpoint_path):
+                        os.makedirs(checkpoint_path)
+                    # end fix
+
                     checkpoint_file_name = checkpoint_path +model_name+ '_' + num_hops + suffix + ".pt"
                     print('Saving checkpoint to ', checkpoint_file_name)
                     torch.save(model.state_dict(), checkpoint_file_name)
+
+                    ## debug
+                    print(f'saved checkpoint to {checkpoint_file_name}')
+                    ## end debug
                 elif (score < best_score + eps) and (no_update < patience):
                     no_update +=1
                     print("Validation accuracy decreases to %f from %f, %d more epoch to check"%(score, best_score, patience-no_update))
