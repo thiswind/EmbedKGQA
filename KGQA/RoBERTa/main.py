@@ -1,4 +1,5 @@
 import os
+from unittest import skip
 import torch
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
@@ -63,7 +64,8 @@ os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3,4,5,6,7"
 args = parser.parse_args()
 
 # 设置运行参数
-args.mode = 'train'
+# args.mode = 'train'
+args.mode = 'eval' # 进入eval模式以寻找入口
 args.relation_dim = 200
 args.do_batch_norm = 1
 args.gpu = 0
@@ -261,7 +263,7 @@ def validate_v2(data_path, device, model, dataloader, entity2idx, model_name, wr
         if inTopk(new_scores, ans, 10):
             hit_at_10 += 1
 
-        if type(ans) is int:
+        if type(ans) is int:    #  处理只有一个 ans 的情况？
             ans = [ans]
         is_correct = 0
         if pred_ans in ans:
@@ -429,12 +431,30 @@ def eval(data_path,
     print('Loading kg embeddings from', checkpoint_file)
     kge_checkpoint = load_checkpoint(checkpoint_file)
     kge_model = KgeModel.create_from(kge_checkpoint)
+
+    # Sets the module in evaluation mode
     kge_model.eval()
+
+    # kge_model = “ComplEx”
+    # ComplEx: 这是你使用的知识图谱嵌入模型的类型，ComplEx是一种常用的模型，适用于处理多关系数据
+    # hops = 'webqsp_half'
+    # e 是一个 400 * 1880592 的巨大矩阵
     e = getEntityEmbeddings(kge_model, hops)
 
     print('Loaded entities and relations')
 
+    # entity2idx 实体名字 -> ID
+    # idx2entity ID -> 实体名字
+    # embedding_matrix 1880592 * 400 的矩阵, 一共有1880592行，每一行是一个sape为[400]的向量
+    # 由此可知，一个实体被嵌入到了一个400维的向量当中
+    # TODO: 为什么会有 1880592 个实体？
     entity2idx, idx2entity, embedding_matrix = prepare_embeddings(e)
+
+    # data是一个列表，共有1482行
+    # 每一行形如：
+    # ['m.03_r3', 'what does jamaican people speak NE', ['m.01428y', 'm.04ygk0', 'm.01428y']]
+    # 'NE‘ 表示一个占位符，代表一个实体的名字
+    # TODO: ['m.01428y', 'm.04ygk0', 'm.01428y'] 这三个实体放在这里代表了什么？
     data = process_text_file(data_path, split=False)
     print('Evaluation file processed, making dataloader')
 
@@ -463,17 +483,27 @@ def eval(data_path,
                                  writeCandidatesToFile=True)
     print('Score', score)
 
+    # debug
+    for ans in answers:
+        print(ans)
+
 
 def process_text_file(text_file, split=False):
     data_file = open(text_file, 'r')
     data_array = []
+    
+    # count skipped lines
+    skipped = 0 # thiswind, debug
+
     for data_line in data_file.readlines():
         data_line = data_line.strip()
         if data_line == '':
+            skipped += 1    # thiswind, debug
             continue
         data_line = data_line.strip().split('\t')
         # if no answer
         if len(data_line) != 2:
+            skipped += 1    # thiswind, debug
             continue
         question = data_line[0].split('[')
         question_1 = question[0]
@@ -483,6 +513,14 @@ def process_text_file(text_file, split=False):
         question = question_1+'NE'+question_2
         ans = data_line[1].split('|')
         data_array.append([head, question.strip(), ans])
+
+    # 文件为：'../../data/QA_data/WebQuestionsSP/qa_test_webqsp_fixed.txt'
+    # 总共有1639 行
+    # 跳过了57行，全都是因为 len(data_line) != 2 而跳过的
+    # 还剩下1582行
+    print('Skipped %d lines' % skipped) # skipped 57 lines, thiswind, debug
+
+
     if split==False:
         return data_array
     else:
@@ -558,6 +596,10 @@ if args.mode == 'train':
 
 
 elif args.mode == 'eval':
+
+    # 强制设置模型为 best_score_model
+    args.load_from = 'best_score_model'
+
     eval(data_path = test_data_path,
     load_from=args.load_from,
     gpu=args.gpu,
